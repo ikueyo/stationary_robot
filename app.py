@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 
 # 初始化 Flask 應用程式
 app = Flask(__name__)
@@ -6,7 +6,7 @@ app = Flask(__name__)
 # 設定主路由，用於顯示我們的網頁 (index.html)
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return send_from_directory('.', 'index.html')
 
 # 處理來自前端的請求，直接生成句子
 @app.route('/generate-sentence', methods=['POST'])
