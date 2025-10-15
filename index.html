@@ -1,11 +1,11 @@
-<!-- templates/index.html -->
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 文具機器人</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="static/css/style.css">
 </head>
 <body>
     <div class="app-container">
@@ -13,27 +13,27 @@
         <div id="sidebar">
             <h2>文具箱</h2>
             <div class="stationery-item" data-name="pencil" draggable="true">
-                <img src="{{ url_for('static', filename='images/pencil.png') }}" alt="鉛筆">
+                <img src="static/images/pencil.png" alt="鉛筆">
                 <span>Pencil</span>
             </div>
             <div class="stationery-item" data-name="eraser" draggable="true">
-                <img src="{{ url_for('static', filename='images/eraser.png') }}" alt="橡皮擦">
+                <img src="static/images/eraser.png" alt="橡皮擦">
                 <span>Eraser</span>
             </div>
             <div class="stationery-item" data-name="ruler" draggable="true">
-                <img src="{{ url_for('static', filename='images/ruler.png') }}" alt="尺">
+                <img src="static/images/ruler.png" alt="尺">
                 <span>Ruler</span>
             </div>
             <div class="stationery-item" data-name="pen" draggable="true">
-                <img src="{{ url_for('static', filename='images/pen.png') }}" alt="原子筆">
+                <img src="static/images/pen.png" alt="原子筆">
                 <span>Pen</span>
             </div>
             <div class="stationery-item" data-name="book" draggable="true">
-                <img src="{{ url_for('static', filename='images/book.png') }}" alt="書本">
+                <img src="static/images/book.png" alt="書本">
                 <span>Book</span>
             </div>
             <div class="stationery-item" data-name="marker" draggable="true">
-                <img src="{{ url_for('static', filename='images/marker.png') }}" alt="彩色筆">
+                <img src="static/images/marker.png" alt="彩色筆">
                 <span>marker</span>
             </div>
         </div>
@@ -57,6 +57,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="static/js/main.js"></script>
 </body>
 </html>
