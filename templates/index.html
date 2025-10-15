@@ -1,0 +1,62 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 文具機器人</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 側邊欄：放置可拖曳的文具 -->
+        <div id="sidebar">
+            <h2>文具箱</h2>
+            <div class="stationery-item" data-name="pencil" draggable="true">
+                <img src="{{ url_for('static', filename='images/pencil.png') }}" alt="鉛筆">
+                <span>Pencil</span>
+            </div>
+            <div class="stationery-item" data-name="eraser" draggable="true">
+                <img src="{{ url_for('static', filename='images/eraser.png') }}" alt="橡皮擦">
+                <span>Eraser</span>
+            </div>
+            <div class="stationery-item" data-name="ruler" draggable="true">
+                <img src="{{ url_for('static', filename='images/ruler.png') }}" alt="尺">
+                <span>Ruler</span>
+            </div>
+            <div class="stationery-item" data-name="pen" draggable="true">
+                <img src="{{ url_for('static', filename='images/pen.png') }}" alt="原子筆">
+                <span>Pen</span>
+            </div>
+            <div class="stationery-item" data-name="book" draggable="true">
+                <img src="{{ url_for('static', filename='images/book.png') }}" alt="書本">
+                <span>Book</span>
+            </div>
+            <div class="stationery-item" data-name="marker" draggable="true">
+                <img src="{{ url_for('static', filename='images/marker.png') }}" alt="彩色筆">
+                <span>marker</span>
+            </div>
+        </div>
+
+        <!-- 主畫板：用於放置文具組成機器人 -->
+        <div id="canvas">
+            <div class="placeholder-text">請從左邊拖曳文具到這裡，創造你的機器人！</div>
+        </div>
+
+        <!-- AI 控制面板 -->
+        <div id="ai-panel">
+            <h2>AI 英語老師</h2>
+            <button id="ask-ai-btn">告訴我怎麼說！</button>
+            <button id="reset-btn">重新開始</button>
+            <div id="ai-output">
+                <p id="ai-sentence">...</p>
+                <button id="speak-btn" style="display: none;">▶️ 播放聲音</button>
+            </div>
+            <div id="loading" style="display: none;">AI 老師正在思考中...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
