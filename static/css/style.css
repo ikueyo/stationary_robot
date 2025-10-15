@@ -1,57 +1,52 @@
 /* static/css/style.css */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    /* Fallback color in case the image fails to load */
     background-color: #f0f8ff; 
-    /* Path to your image, relative to the CSS file */
     background-image: url('../images/new_background.jpg'); 
-    background-size: 90%; /* Ensures the image covers the whole screen */
+    background-size: cover; /* Ensures the image covers the whole screen */
     background-position: center; /* Centers the image */
     background-repeat: no-repeat; /* Prevents the image from repeating */
     margin: 0;
-    padding: 10px; /* Reduced padding */
+    padding: 10px;
     display: flex;
     justify-content: center;
-    align-items: center; /* Center the container */
-    height: 100vh;
+    align-items: center;
+    min-height: 100vh; /* Use min-height to avoid content being cut off */
     box-sizing: border-box;
-    overflow: hidden; /* Prevent body scroll */
 }
 
 .app-container {
     display: flex;
-    flex-direction: column; /* Main layout: top to bottom */
-    gap: 10px; /* Reduced gap */
+    flex-direction: column;
+    gap: 10px;
     width: 100%;
-    height: 100%;
+    height: 100vh; /* Make app container fill the viewport height */
     max-width: 1200px;
 }
 
 #sidebar {
-    flex-shrink: 0; /* Prevent shrinking */
-    background-color: #add8e6;
-    background-size: cover;
-    background-position: center;
+    flex-shrink: 0;
+    background-color: rgba(173, 216, 230, 0.9); /* Added some transparency */
     border-radius: 10px;
     padding: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     display: flex;
-    flex-direction: row; /* Horizontal items */
+    flex-direction: row;
     justify-content: center;
     align-items: center;
-    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+    flex-wrap: wrap;
     gap: 15px;
 }
 
 #sidebar h2 {
-    display: none; /* Hide the title to save space */
+    display: none;
 }
 
 .stationery-item {
     cursor: grab;
     text-align: center;
     transition: transform 0.2s;
-    width: 100px; /* Give a fixed width */
+    width: 100px;
 }
 
 .stationery-item:hover {
@@ -59,7 +54,7 @@ body {
 }
 
 .stationery-item img {
-    width: 80px; /* Slightly smaller images */
+    width: 80px;
     height: 80px;
     object-fit: contain;
 }
@@ -72,16 +67,14 @@ body {
 }
 
 #canvas {
-    flex-grow: 1; /* Take up all available vertical space */
-    background-image: url='/static/images/drawing_board.jpg';
-    background-size: cover;
-    background-position: center;
+    flex-grow: 1;
+    background-color: rgba(255, 255, 255, 0.7); /* Make canvas slightly transparent */
     border: 3px dashed #add8e6;
     border-radius: 10px;
     position: relative;
     box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
-    overflow: hidden; /* Hide anything that goes outside */
-    touch-action: none; /* *** FIX for page scrolling on touch *** */
+    overflow: hidden;
+    touch-action: none;
 }
 
 #canvas.drag-over {
@@ -105,19 +98,19 @@ body {
     width: 120px;
     height: 120px;
     object-fit: contain;
-    /* Remove transform from here, it will be applied by JS */
 }
 
 #ai-panel {
-    flex-shrink: 0; /* Prevent shrinking */
-    background-color: #fffbe6;
+    flex-shrink: 0;
+    background-color: rgba(255, 251, 230, 0.9); /* Added some transparency */
     border-radius: 10px;
     padding: 15px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     display: flex;
     align-items: center;
-    justify-content: space-around; /* Space out controls */
+    justify-content: space-around;
     gap: 15px;
+    flex-wrap: wrap; /* Allow wrapping for smaller screens */
 }
 
 #ai-panel h2 {
@@ -128,13 +121,12 @@ body {
 
 #ai-panel button {
     padding: 10px 15px;
-    margin-bottom: 0; /* Remove bottom margin */
     border: none;
     border-radius: 8px;
     font-size: 1em;
     cursor: pointer;
     transition: background-color 0.3s;
-    white-space: nowrap; /* Prevent button text wrapping */
+    white-space: nowrap;
 }
 
 #ask-ai-btn {
@@ -157,22 +149,21 @@ body {
 }
 
 #ai-output {
-    margin: 0;
     padding: 10px;
     background-color: #ffffff;
     border-radius: 5px;
-    min-height: auto; /* Adjust height */
-    flex-grow: 1; /* Allow it to take space */
+    flex-grow: 1;
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 200px; /* Ensure it has a minimum width */
 }
 
 #ai-sentence {
     word-wrap: break-word;
-    color: #003366; /* Dark Blue for better contrast */
-    font-size: 1.5em; /* Larger font size */
-    font-weight: bold; /* Make text bolder */
+    color: #003366;
+    font-size: 1.5em;
+    font-weight: bold;
     flex-grow: 1;
 }
 
@@ -189,10 +180,74 @@ body {
 
 .dragging-clone {
     position: absolute;
-    pointer-events: none; /* So it doesn't interfere with drop events */
-    z-index: 1000; /* Make sure it's on top of everything */
+    pointer-events: none;
+    z-index: 1000;
     width: 100px;
     height: 100px;
     object-fit: contain;
-    opacity: 0.8; /* Make it slightly transparent */
+    opacity: 0.8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .app-container {
+        height: auto; /* Allow container to grow */
+        padding: 5px;
+        gap: 5px;
+    }
+
+    #ai-panel {
+        flex-direction: column;
+        padding: 10px;
+        gap: 10px;
+    }
+
+    #ai-panel h2 {
+        font-size: 1.1em;
+    }
+
+    #ai-panel button {
+        width: 100%; /* Make buttons full width */
+    }
+
+    #ai-output {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    #ai-sentence {
+        font-size: 1.2em;
+    }
+
+    .stationery-item {
+        width: 80px;
+    }
+
+    .stationery-item img {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stationery-item {
+        width: 60px;
+    }
+
+    .stationery-item img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .stationery-item span {
+        font-size: 0.8em;
+    }
+
+    #ai-sentence {
+        font-size: 1em;
+    }
+
+    .placeholder-text {
+        font-size: 1em;
+    }
 }
