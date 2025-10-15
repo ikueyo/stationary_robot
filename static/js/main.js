@@ -234,34 +234,67 @@ document.addEventListener('DOMContentLoaded', () => {
         speechSynthesis.speak(utterance);
     }
 
-    askAiBtn.addEventListener('click', async () => {
+    /**
+     * (NEW) Directly creates a sentence in JavaScript based on stationery counts.
+     * This replaces the backend Python function.
+     * @param {object} counts - An object with stationery names as keys and their counts as values.
+     * @returns {{sentence: string, items: string[]}|null} - An object with the generated sentence and a list of used items, or null if no items were used.
+     */
+    function createSentenceDirectly(counts) {
+        const usedItems = [];
+        const usedItemNames = [];
+
+        for (const name in counts) {
+            const count = counts[name];
+            if (count > 0) {
+                // Handle pluralization: add 's' if count is greater than 1.
+                const itemStr = count === 1 ? `${count} ${name}` : `${count} ${name}s`;
+                usedItems.push(itemStr);
+                usedItemNames.push(name);
+            }
+        }
+
+        if (usedItems.length === 0) {
+            return null; // No items to create a sentence with.
+        }
+
+        let itemsStr;
+        if (usedItems.length === 1) {
+            itemsStr = usedItems[0];
+        } else if (usedItems.length === 2) {
+            itemsStr = usedItems.join(' and ');
+        } else {
+            itemsStr = usedItems.slice(0, -1).join(', ') + ', and ' + usedItems[usedItems.length - 1];
+        }
+
+        const finalSentence = `I use ${itemsStr} to make a robot.`;
+        
+        return {
+            sentence: finalSentence,
+            items: usedItemNames
+        };
+    }
+
+    askAiBtn.addEventListener('click', () => {
         loadingEl.style.display = 'block';
-        aiSentenceEl.innerHTML = '...'; // Use innerHTML here
+        aiSentenceEl.innerHTML = '...';
         speakBtn.style.display = 'none';
 
-        try {
-            const response = await fetch('/generate-sentence', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ counts: stationeryCounts })
-            });
+        // Simulate a short delay to give feedback to the user
+        setTimeout(() => {
+            const result = createSentenceDirectly(stationeryCounts);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || '請求失敗');
+            if (!result) {
+                aiSentenceEl.textContent = '請先將文具拖曳到畫板上！';
+                loadingEl.style.display = 'none';
+                return;
             }
 
-            const data = await response.json();
-            const colorizedHtml = colorizeSentence(data.sentence, data.items);
+            const colorizedHtml = colorizeSentence(result.sentence, result.items);
             aiSentenceEl.innerHTML = colorizedHtml;
             speakBtn.style.display = 'block';
-
-        } catch (error) {
-            console.error('Error asking AI:', error);
-            aiSentenceEl.textContent = `發生錯誤：${error.message}`;
-        } finally {
             loadingEl.style.display = 'none';
-        }
+        }, 500); // 500ms delay
     });
 
     speakBtn.addEventListener('click', () => {
