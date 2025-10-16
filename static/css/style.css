@@ -30,20 +30,20 @@ body {
     flex-shrink: 0;
     background-color: rgba(173, 216, 230, 0.9);
     border-radius: 10px;
-    padding: 15px;
+    padding: 10px; /* Reduced padding */
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column; /* Stack items vertically */
     align-items: center;
-    gap: 15px;
+    gap: 10px; /* Reduced gap */
     overflow-y: auto; /* Allow scrolling if items overflow */
 }
 
 #sidebar h2 {
     display: block; /* Show the title */
-    margin: 0 0 10px 0;
+    margin: 0 0 5px 0; /* Reduced margin */
     color: #1e5b7e;
-    font-size: 1.5em;
+    font-size: 1.4em; /* Reduced font size */
     text-align: center;
 }
 
@@ -51,7 +51,7 @@ body {
     cursor: grab;
     text-align: center;
     transition: transform 0.2s;
-    width: 120px; /* Increased size for better clicking */
+    width: 100px; /* Reduced width */
 }
 
 .stationery-item:hover {
@@ -59,8 +59,8 @@ body {
 }
 
 .stationery-item img {
-    width: 100px; /* Increased size */
-    height: 100px;
+    width: 80px; /* Reduced size */
+    height: 80px; /* Reduced size */
     object-fit: contain;
 }
 
