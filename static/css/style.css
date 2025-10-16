@@ -3,50 +3,55 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f0f8ff; 
     background-image: url('../images/new_background.jpg'); 
-    background-size: cover; /* Ensures the image covers the whole screen */
-    background-position: center; /* Centers the image */
-    background-repeat: no-repeat; /* Prevents the image from repeating */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     margin: 0;
     padding: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh; /* Use min-height to avoid content being cut off */
+    height: 100vh; /* Use height for full-screen layout on desktop */
     box-sizing: border-box;
+    overflow: hidden; /* Hide scrollbars on the body */
 }
 
 .app-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* Default to horizontal layout */
     gap: 10px;
     width: 100%;
-    height: 100vh; /* Make app container fill the viewport height */
-    max-width: 1200px;
+    height: 100%; /* Make app container fill the viewport height */
+    max-width: 1400px; /* Increased max-width for larger screens */
 }
 
 #sidebar {
+    flex-basis: 220px; /* Set a base width for the sidebar */
     flex-shrink: 0;
-    background-color: rgba(173, 216, 230, 0.9); /* Added some transparency */
+    background-color: rgba(173, 216, 230, 0.9);
     border-radius: 10px;
-    padding: 10px;
+    padding: 15px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     display: flex;
-    flex-direction: row;
-    justify-content: center;
+    flex-direction: column; /* Stack items vertically */
     align-items: center;
-    flex-wrap: wrap;
     gap: 15px;
+    overflow-y: auto; /* Allow scrolling if items overflow */
 }
 
 #sidebar h2 {
-    display: none;
+    display: block; /* Show the title */
+    margin: 0 0 10px 0;
+    color: #1e5b7e;
+    font-size: 1.5em;
+    text-align: center;
 }
 
 .stationery-item {
     cursor: grab;
     text-align: center;
     transition: transform 0.2s;
-    width: 100px;
+    width: 120px; /* Increased size for better clicking */
 }
 
 .stationery-item:hover {
@@ -54,8 +59,8 @@ body {
 }
 
 .stationery-item img {
-    width: 80px;
-    height: 80px;
+    width: 100px; /* Increased size */
+    height: 100px;
     object-fit: contain;
 }
 
@@ -63,12 +68,20 @@ body {
     display: block;
     margin-top: 5px;
     font-weight: bold;
-    font-size: 0.9em;
+    font-size: 1em;
+}
+
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0; /* Prevent flexbox overflow issues */
 }
 
 #canvas {
     flex-grow: 1;
-    background-color: rgba(255, 255, 255, 0.7); /* Make canvas slightly transparent */
+    background-color: rgba(255, 255, 255, 0.7);
     border: 3px dashed #add8e6;
     border-radius: 10px;
     position: relative;
@@ -90,6 +103,7 @@ body {
     color: #999;
     font-size: 1.2em;
     pointer-events: none;
+    text-align: center;
 }
 
 .dropped-item {
@@ -102,7 +116,7 @@ body {
 
 #ai-panel {
     flex-shrink: 0;
-    background-color: rgba(255, 251, 230, 0.9); /* Added some transparency */
+    background-color: rgba(255, 251, 230, 0.9);
     border-radius: 10px;
     padding: 15px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
@@ -110,13 +124,14 @@ body {
     align-items: center;
     justify-content: space-around;
     gap: 15px;
-    flex-wrap: wrap; /* Allow wrapping for smaller screens */
+    flex-wrap: wrap;
 }
 
 #ai-panel h2 {
     margin: 0;
     font-size: 1.2em;
     color: #5c3a0b;
+    white-space: nowrap;
 }
 
 #ai-panel button {
@@ -156,7 +171,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    min-width: 200px; /* Ensure it has a minimum width */
+    min-width: 200px;
 }
 
 #ai-sentence {
@@ -188,12 +203,34 @@ body {
     opacity: 0.8;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Responsive Design for Tablets and Phones */
+@media (max-width: 820px) {
+    body {
+        height: auto; /* Allow body to grow */
+        overflow: visible; /* Show scrollbars if needed */
+    }
+
     .app-container {
-        height: auto; /* Allow container to grow */
+        flex-direction: column; /* Switch to vertical layout */
+        height: auto;
         padding: 5px;
         gap: 5px;
+    }
+
+    #sidebar {
+        flex-direction: row; /* Arrange items horizontally */
+        flex-wrap: wrap; /* Allow wrapping */
+        justify-content: center;
+        overflow-y: visible;
+        flex-basis: auto; /* Reset basis */
+    }
+
+    #sidebar h2 {
+        display: none; /* Hide title in horizontal mode */
+    }
+    
+    #canvas {
+        min-height: 350px; /* CRITICAL: Ensure canvas is always visible */
     }
 
     #ai-panel {
@@ -207,11 +244,12 @@ body {
     }
 
     #ai-panel button {
-        width: 100%; /* Make buttons full width */
+        width: 100%;
     }
 
     #ai-output {
         width: 100%;
+        box-sizing: border-box;
         justify-content: space-between;
     }
 
@@ -241,6 +279,10 @@ body {
 
     .stationery-item span {
         font-size: 0.8em;
+    }
+    
+    #canvas {
+        min-height: 250px; /* Adjust for smaller phones */
     }
 
     #ai-sentence {

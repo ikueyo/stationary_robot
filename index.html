@@ -38,21 +38,24 @@
             </div>
         </div>
 
-        <!-- 主畫板：用於放置文具組成機器人 -->
-        <div id="canvas">
-            <div class="placeholder-text">請從左邊拖曳文具到這裡，創造你的機器人！</div>
-        </div>
-
-        <!-- AI 控制面板 -->
-        <div id="ai-panel">
-            <h2>AI 英語老師</h2>
-            <button id="ask-ai-btn">告訴我怎麼說！</button>
-            <button id="reset-btn">重新開始</button>
-            <div id="ai-output">
-                <p id="ai-sentence">...</p>
-                <button id="speak-btn" style="display: none;">▶️ 播放聲音</button>
+        <!-- 主畫板與 AI 控制面板的容器 -->
+        <div class="main-content">
+            <!-- 主畫板：用於放置文具組成機器人 -->
+            <div id="canvas">
+                <div class="placeholder-text">請從左邊拖曳文具到這裡，創造你的機器人！</div>
             </div>
-            <div id="loading" style="display: none;">AI 老師正在思考中...</div>
+
+            <!-- AI 控制面板 -->
+            <div id="ai-panel">
+                <h2>AI 英語老師</h2>
+                <button id="ask-ai-btn">告訴我怎麼說！</button>
+                <button id="reset-btn">重新開始</button>
+                <div id="ai-output">
+                    <p id="ai-sentence">...</p>
+                    <button id="speak-btn" style="display: none;">▶️ 播放聲音</button>
+                </div>
+                <div id="loading" style="display: none;">AI 老師正在思考中...</div>
+            </div>
         </div>
     </div>
 
