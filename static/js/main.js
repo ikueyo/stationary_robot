@@ -1,6 +1,32 @@
 // static/js/main.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    const appContainer = document.querySelector('.app-container');
+    const DESIGN_WIDTH = 1400;
+    const DESIGN_HEIGHT = 900;
+
+    function updateScaling() {
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        const scaleX = windowWidth / DESIGN_WIDTH;
+        const scaleY = windowHeight / DESIGN_HEIGHT;
+
+        // 選擇較小的縮放比例，以確保整個應用都能顯示在視窗內
+        const scale = Math.min(scaleX, scaleY);
+
+        // 計算置中需要的偏移量
+        const offsetX = (windowWidth - (DESIGN_WIDTH * scale)) / 2;
+        const offsetY = (windowHeight - (DESIGN_HEIGHT * scale)) / 2;
+
+        // 應用縮放和位移
+        appContainer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    }
+
+    // 頁面載入時和視窗大小改變時都執行縮放更新
+    window.addEventListener('resize', updateScaling);
+    updateScaling(); // 初始載入時執行一次
+    
     // 獲取所有需要的 HTML 元素
     const canvas = document.getElementById('canvas');
     const askAiBtn = document.getElementById('ask-ai-btn');
