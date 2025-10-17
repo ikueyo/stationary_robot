@@ -1,32 +1,6 @@
 // static/js/main.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    const appContainer = document.querySelector('.app-container');
-    const DESIGN_WIDTH = 1400;
-    const DESIGN_HEIGHT = 900;
-
-    function updateScaling() {
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-
-        const scaleX = windowWidth / DESIGN_WIDTH;
-        const scaleY = windowHeight / DESIGN_HEIGHT;
-
-        // 選擇較小的縮放比例，以確保整個應用都能顯示在視窗內
-        const scale = Math.min(scaleX, scaleY);
-
-        // 計算置中需要的偏移量
-        const offsetX = (windowWidth - (DESIGN_WIDTH * scale)) / 2;
-        const offsetY = (windowHeight - (DESIGN_HEIGHT * scale)) / 2;
-
-        // 應用縮放和位移
-        appContainer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-    }
-
-    // 頁面載入時和視窗大小改變時都執行縮放更新
-    window.addEventListener('resize', updateScaling);
-    updateScaling(); // 初始載入時執行一次
-    
     // 獲取所有需要的 HTML 元素
     const canvas = document.getElementById('canvas');
     const askAiBtn = document.getElementById('ask-ai-btn');
@@ -35,156 +9,227 @@ document.addEventListener('DOMContentLoaded', () => {
     const speakBtn = document.getElementById('speak-btn');
     const loadingEl = document.getElementById('loading');
     
-    // 修正：與 index.html 的文具項目同步
+    const appContainer = document.querySelector('.app-container');
+    const DESIGN_WIDTH = 1400;
+    const DESIGN_HEIGHT = 900;
+
+    // --- 響應式縮放邏輯 ---
+    function updateScaling() {
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const scaleX = windowWidth / DESIGN_WIDTH;
+        const scaleY = windowHeight / DESIGN_HEIGHT;
+        const scale = Math.min(scaleX, scaleY);
+        const offsetX = (windowWidth - (DESIGN_WIDTH * scale)) / 2;
+        const offsetY = (windowHeight - (DESIGN_HEIGHT * scale)) / 2;
+        appContainer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    }
+
+    window.addEventListener('resize', updateScaling);
+    updateScaling();
+
+    // --- 變數與狀態管理 ---
     let stationeryCounts = {
         pencil: 0, eraser: 0, ruler: 0,
         pen: 0, book: 0, marker: 0
     };
+    let lastAudioSequence = [];
 
-    // 為不同文具定義顏色
     const itemColors = {
-        pencil: '#D9A404', // 金色
-        eraser: '#D90467', // 桃紅色
-        ruler:  '#04A6D9', // 天藍色
-        pen:    '#D9042B', // 緋紅色
-        book:   '#04D94F', // 萊姆綠
-        marker: '#8D04D9'  // 紫羅蘭色
+        pencil: '#D9A404', eraser: '#D90467', ruler:  '#04A6D9',
+        pen:    '#D9042B', book:   '#04D94F', marker: '#8D04D9'
     };
 
+    // --- 全新：循序播放語音引擎 ---
+    let audioContext;
+    let gainNode;
+    let activeSources = [];
+    let isPlaying = false; // 新增狀態旗標
+
+    function initAudio() {
+        if (!audioContext) {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.9; 
+                gainNode.connect(audioContext.destination);
+            } catch (e) {
+                console.error("Web Audio API is not supported in this browser");
+                alert("您的瀏覽器不支援音訊播放功能。");
+            }
+        }
+    }
+
+    function stopAllAudio() {
+        isPlaying = false; // 透過旗標中斷循序播放
+        activeSources.forEach(source => {
+            try {
+                source.onended = null; // 移除事件監聽，防止中斷後還觸發下一個播放
+                source.stop();
+            } catch (e) {}
+        });
+        activeSources = [];
+    }
+
     /**
-     * 為句子中的文具單字上色
-     * @param {string} sentence - AI 生成的原始句子
-     * @param {string[]} items - 包含在句子中的文具名稱列表
-     * @returns {string} - 包含 HTML <span> 標籤的彩色句子
+     * [重構] 根據檔名序列，循序播放拼接的音訊
+     * @param {string[]} files - 不含副檔名的音檔名稱陣列
      */
-    function colorizeSentence(sentence, items) {
-        let colorizedSentence = sentence;
+    async function playAudioSequence(files) {
+        if (isPlaying) return; // 如果正在播放，則不執行新的播放請求
+        if (!audioContext) {
+            console.error("AudioContext not initialized.");
+            return;
+        }
         
-        // 建立一個包含單數和複數的搜尋列表
-        const allItemsToColor = new Set();
-        items.forEach(item => {
-            allItemsToColor.add(item);
-            // 簡單地加上 's' 來處理複數 (例如: pencil -> pencils)
-            if (!item.endsWith('s')) {
-                 allItemsToColor.add(item + 's');
+        stopAllAudio();
+        isPlaying = true;
+
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+
+        // 步驟 1: 預先載入所有音訊緩衝
+        const audioBuffers = await Promise.all(
+            files.map(async (file) => {
+                const path = `static/audio/${file}.mp3`;
+                try {
+                    const response = await fetch(path);
+                    const arrayBuffer = await response.arrayBuffer();
+                    return await audioContext.decodeAudioData(arrayBuffer);
+                } catch (error) {
+                    console.error(`載入或解碼音檔失敗: ${path}`, error);
+                    return null;
+                }
+            })
+        );
+
+        // 步驟 2: 定義循序播放器
+        function playNext(index) {
+            // 終止條件: 序列播放完畢，或被外部中斷
+            if (!isPlaying || index >= audioBuffers.length) {
+                isPlaying = false;
+                return;
+            }
+
+            const buffer = audioBuffers[index];
+            if (buffer) {
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(gainNode);
+                
+                // 核心：當這個音檔播放結束時，才去播放下一個
+                source.onended = () => playNext(index + 1);
+                
+                source.start();
+                activeSources.push(source);
+            } else {
+                // 如果某個音檔載入失敗，直接跳到下一個
+                playNext(index + 1);
+            }
+        }
+
+        // 步驟 3: 啟動播放序列
+        playNext(0);
+    }
+
+    // --- 句子與音訊序列生成 ---
+    function numberToWord(num) {
+        const words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+        return (num > 0 && num < words.length) ? words[num] : num.toString();
+    }
+
+    function createSentenceAndAudioPlan(counts) {
+        const usedItemsForText = [];
+        const usedItemsForAudio = [];
+        const usedItemNamesForColor = [];
+
+        for (const name in counts) {
+            const count = counts[name];
+            if (count > 0) {
+                if (count === 1) {
+                    usedItemsForText.push(`a ${name}`);
+                    usedItemsForAudio.push('a', name);
+                } else {
+                    usedItemsForText.push(`${count} ${name}s`);
+                    usedItemsForAudio.push(numberToWord(count), `${name}s`);
+                }
+                usedItemNamesForColor.push(name);
+            }
+        }
+
+        if (usedItemsForText.length === 0) return null;
+
+        let itemsStr;
+        if (usedItemsForText.length === 1) {
+            itemsStr = usedItemsForText[0];
+        } else if (usedItemsForText.length === 2) {
+            itemsStr = usedItemsForText.join(' and ');
+        } else {
+            itemsStr = usedItemsForText.slice(0, -1).join(', ') + ', and ' + usedItemsForText[usedItemsForText.length - 1];
+        }
+        const displayText = `I use ${itemsStr} to make a robot.`;
+
+        // 這裡的邏輯需要調整以匹配新的句子結構
+        const finalAudioSequence = ['I use'];
+        const usedEntries = Object.entries(counts).filter(([, count]) => count > 0);
+        usedEntries.forEach(([name, count], index) => {
+            if (index > 0) {
+                // 我們沒有 "and" 的音檔，所以這裡在音訊中會直接連接
+            }
+            if (count === 1) {
+                finalAudioSequence.push('a', name);
+            } else {
+                finalAudioSequence.push(numberToWord(count), `${name}s`);
             }
         });
+        finalAudioSequence.push('to make a robot');
 
+        return {
+            sentence: displayText,
+            audioFiles: finalAudioSequence,
+            items: usedItemNamesForColor
+        };
+    }
+
+    function colorizeSentence(sentence, items) {
+        let colorizedSentence = sentence;
+        const allItemsToColor = new Set(items.flatMap(item => [item, item + 's']));
         allItemsToColor.forEach(item => {
-            // 找出單字對應的顏色 (例如 "pencils" 對應 "pencil" 的顏色)
             const baseItem = item.endsWith('s') ? item.slice(0, -1) : item;
             const color = itemColors[baseItem];
-            
             if (color) {
-                // 使用正規表示式來取代所有符合的單字 (忽略大小寫)
-                // \b 確保我們只匹配完整的單字 (例如 "pen" 不會匹配到 "pencil" 的一部分)
-                const regex = new RegExp(`\\b(${item})\\b`, 'gi');
-                colorizedSentence = colorizedSentence.replace(regex, 
-                    `<span style="color: ${color};">${item}</span>`
-                );
+                const regex = new RegExp(`\b(${item})\b`, 'gi');
+                colorizedSentence = colorizedSentence.replace(regex, `<span style="color: ${color}; font-weight: bold;">${item}</span>`);
             }
         });
         return colorizedSentence;
     }
 
-    // --- Interact.js Gesture Setup for Canvas Items ---
-
-    const setupGestures = (target) => {
-        // Keep track of angle and scale
-        let angle = 0;
-        let scale = 1;
-
-        interact(target)
-            .draggable({
-                listeners: { move: dragMoveListener },
-                modifiers: [
-                    interact.modifiers.restrictRect({
-                        restriction: 'parent'
-                    })
-                ]
-            })
-            .gesturable({
-                listeners: {
-                    move(event) {
-                        const target = event.target;
-                        
-                        // Update angle and scale based on gesture
-                        angle += event.da;
-                        scale *= (1 + event.ds);
-
-                        // Apply transform
-                        const x = parseFloat(target.getAttribute('data-x')) || 0;
-                        const y = parseFloat(target.getAttribute('data-y')) || 0;
-                        
-                        target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg) scale(${scale})`;
-                        
-                        // Store values for next event
-                        target.setAttribute('data-angle', angle);
-                        target.setAttribute('data-scale', scale);
-                    }
-                }
-            });
-    };
-    
-    function dragMoveListener(event) {
-        const target = event.target;
-        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-
-        // Get current rotation and scale if they exist
-        const angle = parseFloat(target.getAttribute('data-angle')) || 0;
-        const scale = parseFloat(target.getAttribute('data-scale')) || 1;
-
-        // Apply all transforms
-        target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg) scale(${scale})`;
-        target.setAttribute('data-x', x);
-        target.setAttribute('data-y', y);
-    }
-
-    // --- Sidebar Drag and Drop Logic ---
-
+    // --- Interact.js 拖放與手勢邏輯 ---
     interact('.stationery-item').draggable({
         inertia: true,
         listeners: {
             start(event) {
-                const placeholderText = document.querySelector('.placeholder-text');
-                if (placeholderText) placeholderText.style.display = 'none';
-                
-                // *** FIX: Create a clone of the IMAGE for dragging ***
-                const original = event.target;
-                const originalImg = original.querySelector('img');
-                
+                document.querySelector('.placeholder-text')?.remove();
+                const originalImg = event.target.querySelector('img');
                 if (!originalImg) return;
-
                 const clone = document.createElement('img');
                 clone.src = originalImg.src;
                 clone.classList.add('dragging-clone');
                 document.body.appendChild(clone);
-
-                // Position the clone initially
-                clone.style.left = `${event.client.x - 40}px`;
-                clone.style.top = `${event.client.y - 40}px`;
-
-                // Store the clone on the interaction object
+                clone.style.left = `${event.client.x - 50}px`;
+                clone.style.top = `${event.client.y - 50}px`;
                 event.interaction.clone = clone;
             },
             move(event) {
-                // Move the clone, not the original
-                const clone = event.interaction.clone;
-                if (clone) {
-                    const x = (parseFloat(clone.getAttribute('data-x')) || 0) + event.dx;
-                    const y = (parseFloat(clone.getAttribute('data-y')) || 0) + event.dy;
-
-                    clone.style.position = 'absolute';
-                    clone.style.left = `${event.client.x - 50}px`; // 40 is half width
-                    clone.style.top = `${event.client.y - 50}px`; // 40 is half height
+                if (event.interaction.clone) {
+                    event.interaction.clone.style.left = `${event.client.x - 50}px`;
+                    event.interaction.clone.style.top = `${event.client.y - 50}px`;
                 }
             },
             end(event) {
-                // Remove the clone
-                if (event.interaction.clone) {
-                    event.interaction.clone.remove();
-                }
+                event.interaction.clone?.remove();
             }
         }
     });
@@ -194,147 +239,95 @@ document.addEventListener('DOMContentLoaded', () => {
         ondrop: function (event) {
             const originalItem = event.relatedTarget;
             const itemName = originalItem.dataset.name;
-            const itemImgSrc = originalItem.querySelector('img').src;
-
             stationeryCounts[itemName]++;
-
             const newItem = document.createElement('img');
-            newItem.src = itemImgSrc;
+            newItem.src = originalItem.querySelector('img').src;
             newItem.alt = itemName;
             newItem.className = 'dropped-item';
-            
             const canvasRect = canvas.getBoundingClientRect();
-            const initialX = event.dragEvent.client.x - canvasRect.left - 50;
-            const initialY = event.dragEvent.client.y - canvasRect.top - 50;
-
+            const scale = parseFloat(appContainer.style.transform.split('scale(')[1]) || 1;
+            const initialX = (event.dragEvent.client.x - canvasRect.left) / scale - 60;
+            const initialY = (event.dragEvent.client.y - canvasRect.top) / scale - 60;
             newItem.style.transform = `translate(${initialX}px, ${initialY}px)`;
             newItem.setAttribute('data-x', initialX);
             newItem.setAttribute('data-y', initialY);
-            
             canvas.appendChild(newItem);
             setupGestures(newItem);
         }
     });
 
-    // --- AI Panel, Speak, and Reset Logic ---
-
-    // 儲存可用的語音
-    let voices = [];
-    
-    // 獲取並儲存瀏覽器提供的語音
-    function populateVoiceList() {
-        voices = speechSynthesis.getVoices();
-    }
-
-    populateVoiceList();
-    if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = populateVoiceList;
-    }
-
-    /**
-     * 使用更高品質的語音來朗讀文字
-     * @param {string} text - 要朗讀的文字
-     */
-    function speakText(text) {
-        if (!text || text === '...') return;
-
-        // 停止任何正在播放的語音
-        speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // 尋找更高品質的英文語音
-        let bestVoice = voices.find(voice => 
-            voice.lang === 'en-US' && voice.name.includes('Google')
-        ) || voices.find(voice => 
-            voice.lang === 'en-US' && voice.name.includes('Microsoft')
-        ) || voices.find(voice => 
-            voice.lang === 'en-US'
-        );
-
-        if (bestVoice) {
-            utterance.voice = bestVoice;
-        }
-        
-        utterance.lang = 'en-US';
-        speechSynthesis.speak(utterance);
-    }
-
-    /**
-     * (NEW) Directly creates a sentence in JavaScript based on stationery counts.
-     * This replaces the backend Python function.
-     * @param {object} counts - An object with stationery names as keys and their counts as values.
-     * @returns {{sentence: string, items: string[]}|null} - An object with the generated sentence and a list of used items, or null if no items were used.
-     */
-    function createSentenceDirectly(counts) {
-        const usedItems = [];
-        const usedItemNames = [];
-
-        for (const name in counts) {
-            const count = counts[name];
-            if (count > 0) {
-                // Handle pluralization: add 's' if count is greater than 1.
-                const itemStr = count === 1 ? `${count} ${name}` : `${count} ${name}s`;
-                usedItems.push(itemStr);
-                usedItemNames.push(name);
+    const setupGestures = (target) => {
+        interact(target).draggable({
+            listeners: {
+                move(event) {
+                    const target = event.target;
+                    const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                    const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                    const angle = parseFloat(target.getAttribute('data-angle')) || 0;
+                    const scale = parseFloat(target.getAttribute('data-scale')) || 1;
+                    target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg) scale(${scale})`;
+                    target.setAttribute('data-x', x);
+                    target.setAttribute('data-y', y);
+                }
+            },
+            modifiers: [interact.modifiers.restrictRect({ restriction: 'parent' })]
+        }).gesturable({
+            listeners: {
+                move(event) {
+                    const target = event.target;
+                    let angle = parseFloat(target.getAttribute('data-angle')) || 0;
+                    let scale = parseFloat(target.getAttribute('data-scale')) || 1;
+                    angle += event.da;
+                    scale *= (1 + event.ds);
+                    const x = parseFloat(target.getAttribute('data-x')) || 0;
+                    const y = parseFloat(target.getAttribute('data-y')) || 0;
+                    target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg) scale(${scale})`;
+                    target.setAttribute('data-angle', angle);
+                    target.setAttribute('data-scale', scale);
+                }
             }
-        }
+        });
+    };
 
-        if (usedItems.length === 0) {
-            return null; // No items to create a sentence with.
-        }
-
-        let itemsStr;
-        if (usedItems.length === 1) {
-            itemsStr = usedItems[0];
-        } else if (usedItems.length === 2) {
-            itemsStr = usedItems.join(' and ');
-        } else {
-            itemsStr = usedItems.slice(0, -1).join(', ') + ', and ' + usedItems[usedItems.length - 1];
-        }
-
-        const finalSentence = `I use ${itemsStr} to make a robot.`;
-        
-        return {
-            sentence: finalSentence,
-            items: usedItemNames
-        };
-    }
-
+    // --- 控制面板按鈕事件 ---
     askAiBtn.addEventListener('click', () => {
+        initAudio();
         loadingEl.style.display = 'block';
         aiSentenceEl.innerHTML = '...';
         speakBtn.style.display = 'none';
+        lastAudioSequence = [];
 
-        // Simulate a short delay to give feedback to the user
         setTimeout(() => {
-            const result = createSentenceDirectly(stationeryCounts);
-
-            if (!result) {
+            const plan = createSentenceAndAudioPlan(stationeryCounts);
+            if (!plan) {
                 aiSentenceEl.textContent = '請先將文具拖曳到畫板上！';
                 loadingEl.style.display = 'none';
                 return;
             }
-
-            const colorizedHtml = colorizeSentence(result.sentence, result.items);
+            const colorizedHtml = colorizeSentence(plan.sentence, plan.items);
             aiSentenceEl.innerHTML = colorizedHtml;
             speakBtn.style.display = 'block';
             loadingEl.style.display = 'none';
-        }, 500); // 500ms delay
+            lastAudioSequence = plan.audioFiles;
+            playAudioSequence(lastAudioSequence);
+        }, 500);
     });
 
     speakBtn.addEventListener('click', () => {
-        const textToSpeak = aiSentenceEl.textContent;
-        speakText(textToSpeak);
+        initAudio();
+        if (lastAudioSequence.length > 0) {
+            playAudioSequence(lastAudioSequence);
+        }
     });
 
     resetBtn.addEventListener('click', () => {
+        stopAllAudio();
         canvas.innerHTML = '<div class="placeholder-text">請從左邊拖曳文具到這裡，創造你的機器人！</div>';
         for (const key in stationeryCounts) {
             stationeryCounts[key] = 0;
         }
         aiSentenceEl.textContent = '...';
         speakBtn.style.display = 'none';
-        speechSynthesis.cancel(); // 如果正在說話，就停止
+        lastAudioSequence = [];
     });
 });
