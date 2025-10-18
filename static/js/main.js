@@ -141,18 +141,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createSentenceAndAudioPlan(counts) {
         const usedItemsForText = [];
-        const usedItemsForAudio = [];
+        const audioChunks = [];
         const usedItemNamesForColor = [];
 
+        // 步驟 1: 收集所有使用到的文具資訊，並建立對應的文字和語音片段
         for (const name in counts) {
             const count = counts[name];
             if (count > 0) {
                 if (count === 1) {
                     usedItemsForText.push(`a ${name}`);
-                    usedItemsForAudio.push('a', name);
+                    audioChunks.push(['a', name]);
                 } else {
                     usedItemsForText.push(`${count} ${name}s`);
-                    usedItemsForAudio.push(numberToWord(count), `${name}s`);
+                    audioChunks.push([numberToWord(count), `${name}s`]);
                 }
                 usedItemNamesForColor.push(name);
             }
@@ -160,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (usedItemsForText.length === 0) return null;
 
+        // 步驟 2: 產生用於顯示的句子字串
         let itemsStr;
         if (usedItemsForText.length === 1) {
             itemsStr = usedItemsForText[0];
@@ -170,19 +172,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const displayText = `I use ${itemsStr} to make a robot.`;
 
-        // 這裡的邏輯需要調整以匹配新的句子結構
+        // 步驟 3: 產生最終的語音檔序列 (更簡潔、穩健的邏輯)
         const finalAudioSequence = ['I use'];
-        const usedEntries = Object.entries(counts).filter(([, count]) => count > 0);
-        usedEntries.forEach(([name, count], index) => {
-            if (index > 0) {
-                // 我們沒有 "and" 的音檔，所以這裡在音訊中會直接連接
+        const numChunks = audioChunks.length;
+
+        audioChunks.forEach((chunk, index) => {
+            // 如果文具總數超過一個，且這是最後一個文具，那麼在它前面加上 'and'
+            if (numChunks > 1 && index === numChunks - 1) {
+                finalAudioSequence.push('and');
             }
-            if (count === 1) {
-                finalAudioSequence.push('a', name);
-            } else {
-                finalAudioSequence.push(numberToWord(count), `${name}s`);
-            }
+            // 將目前文具的語音片段加入序列
+            finalAudioSequence.push(...chunk);
         });
+
         finalAudioSequence.push('to make a robot');
 
         return {
